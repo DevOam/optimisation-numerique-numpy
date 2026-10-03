@@ -115,7 +115,7 @@ def run(profile="quick"):
                 details[key]={"confusion":metrics["confusion"],"f1_per_class":metrics["f1_per_class"]}
                 if name not in visuals or row["validation_loss"] < visuals[name]["validation_loss"]:
                     visuals[name]={"validation_loss":row["validation_loss"],"theta":result.best_theta.copy(),
-                                   "parts":parts,"dims":dims,"method":method}
+                                   "parts":parts,"dims":dims,"method":method,"seed":seed}
     save_rows(RESULTS/"classification_results.csv",rows)
     save_json(RESULTS/"classification_histories.json",histories)
     save_json(RESULTS/"classification_details.json",details)
@@ -132,12 +132,13 @@ def plot_results(rows,histories,details,visuals):
             plt.plot([x["epoch"] for x in h],[x["validation"] for x in h],label=method)
         plt.xlabel("Époque");plt.ylabel("Entropie croisée validation");plt.title(dataset);plt.legend(ncol=2)
         plt.tight_layout();plt.savefig(FIGURES/f"classification_{dataset}_courbes.png",dpi=150);plt.close()
-        best=max([r for r in rows if r["dataset"]==dataset and r["seed"]==42],key=lambda r:r["accuracy"])
-        cm=np.array(details[f"{dataset}:{best['method']}:42"]["confusion"])
+        # Même méthode pour la matrice et pour les autres figures du jeu.
+        choix=visuals[dataset]
+        cm=np.array(details[f"{dataset}:{choix['method']}:{choix['seed']}"]["confusion"])
         plt.figure(figsize=(5,4));plt.imshow(cm,cmap="Blues");plt.colorbar();
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]): plt.text(j,i,str(cm[i,j]),ha="center",va="center",fontsize=7)
-        plt.xlabel("Prédit");plt.ylabel("Réel");plt.title(f"{dataset} - {best['method']}")
+        plt.xlabel("Prédit");plt.ylabel("Réel");plt.title(f"{dataset} - {choix['method']}")
         plt.tight_layout();plt.savefig(FIGURES/f"classification_{dataset}_confusion.png",dpi=150);plt.close()
 
     # Frontière de décision sur les spirales standardisées.
