@@ -1,0 +1,8 @@
+{
+  "regression_nonlinear.csv:ols": 2.631826181291721e-10,
+  "regression_nonlinear.csv:ridge": 2.631826181291721e-10,
+  "regression_nonlinear.csv:rbf": 1.6978787757683082e-11,
+  "regression_diabetes.csv:ols": 2.6317958236308917e-10,
+  "regression_diabetes.csv:ridge": 2.6317958236308917e-10,
+  "regression_diabetes.csv:rbf": 8.956827861450326e-10
+}

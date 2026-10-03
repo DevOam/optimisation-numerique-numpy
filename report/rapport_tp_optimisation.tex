@@ -1,0 +1,178 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry,amsmath,booktabs,graphicx,float,hyperref}
+\geometry{margin=2.2cm}
+\graphicspath{{../figures/}}
+
+\title{TP d'optimisation avec NumPy}
+\author{Mohamed Reda Lakouas}
+\date{Octobre 2026}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Le but de ce TP est de programmer plusieurs méthodes d'optimisation avec NumPy.
+J'ai travaillé sur trois problèmes : la régression, la classification et le
+clustering. J'ai comparé GD, GD avec recherche du pas, SGD, Momentum, AdaGrad,
+RMSprop et Adam.
+
+J'ai utilisé les graines 42, 123 et 2024 pour les petits jeux. Pour MNIST et
+Fashion-MNIST, j'ai d'abord fait un essai court avec 3000 images train, 1000
+validation et 1000 test. Cet essai utilise une graine et deux époques. Il sert
+surtout à vérifier que tout le programme fonctionne.
+
+Le code utilisé pour obtenir les résultats est disponible sur GitHub :
+\begin{center}
+\url{https://github.com/DevOam/optimisation-numerique-numpy}
+\end{center}
+
+\section{Principe de l'optimisation}
+Le modèle possède des paramètres notés $\theta$. La fonction $J(\theta)$ mesure
+l'erreur. Le gradient indique la direction où cette erreur augmente. Pour la
+faire diminuer, j'utilise la mise à jour suivante :
+\[
+\theta_{nouveau}=\theta_{ancien}-\eta\,\nabla J(\theta).
+\]
+Le nombre $\eta$ est le pas d'apprentissage. S'il est trop petit, le programme
+avance lentement. S'il est trop grand, la perte peut devenir instable.
+
+Dans le code, les sept méthodes utilisent la même boucle. Seule la façon de
+modifier le gradient change. Adam utilise par exemple une moyenne du gradient
+et une moyenne des gradients au carré.
+
+J'ai aussi vérifié les gradients par différences finies avec $h=10^{-5}$.
+Les erreurs obtenues sont entre $10^{-8}$ et $10^{-10}$. Cela montre que les
+gradients programmés sont corrects.
+
+\section{Exercice 1 : régression}
+Pour OLS et Ridge, la perte utilisée est :
+\[
+J(w)=\frac{\lVert Xw-y\rVert^2}{2n}+\frac{\lambda}{2}w^TPw.
+\]
+Quand $\lambda=0$, on obtient OLS. Pour Ridge, $\lambda>0$. Le biais n'est pas
+pénalisé. J'ai aussi utilisé le noyau RBF pour représenter une relation non
+linéaire.
+
+\begin{table}[H]\centering
+\caption{Quelques résultats de régression sur le test.}
+\begin{tabular}{llrrr}\toprule
+Jeu & Modèle et méthode & RMSE & MAE & $R^2$\\\midrule
+Nonlinear & RBF + Adam & 0.565 & 0.487 & 0.529\\
+Nonlinear & OLS + SGD & 0.820 & 0.701 & 0.007\\
+Diabetes & Ridge + Adam & 53.740 & 42.940 & 0.467\\
+Diabetes & OLS + Adam & 53.773 & 42.932 & 0.466\\\bottomrule
+\end{tabular}
+\end{table}
+
+Le résultat principal est que RBF fonctionne mieux sur le jeu Nonlinear. C'est
+logique car OLS cherche seulement une relation linéaire. Sur Diabetes, Ridge et
+OLS donnent des résultats proches et sont meilleurs que le RBF essayé.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.62\textwidth]{regression_comparaison_rmse.png}
+\caption{Comparaison des modèles sur le jeu Nonlinear.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=.46\textwidth]{regression_regression_nonlinear_predictions.png}
+\includegraphics[width=.46\textwidth]{regression_regression_nonlinear_residus.png}
+\caption{Prédictions et résidus du meilleur modèle.}
+\end{figure}
+
+\section{Exercice 2 : classification}
+J'ai programmé un petit réseau avec deux couches cachées. Les architectures sont
+$2\to32\to16\to3$ pour Spiral, $4\to32\to16\to3$ pour Iris et
+$784\to128\to64\to10$ pour les images. Les couches cachées utilisent $\tanh$.
+La dernière couche utilise softmax pour obtenir les probabilités des classes.
+
+\begin{table}[H]\centering
+\caption{Meilleur résultat obtenu pour chaque jeu.}
+\begin{tabular}{llrr}\toprule
+Jeu & Méthode & Exactitude & F1 macro\\\midrule
+Spiral & AdaGrad & 0.989 & 0.989\\
+Iris & AdaGrad & 0.944 & 0.944\\
+MNIST (essai) & RMSprop & 0.849 & 0.847\\
+Fashion-MNIST (essai) & RMSprop & 0.707 & 0.694\\\bottomrule
+\end{tabular}
+\end{table}
+
+Sur Spiral, les méthodes adaptatives apprennent mieux la forme des spirales que
+GD avec le pas choisi. Pour les images, RMSprop donne le meilleur résultat de
+l'essai court. Je ne considère pas ce résultat comme définitif car deux époques
+ne suffisent pas pour conclure.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.46\textwidth]{classification_spiral_frontiere.png}
+\includegraphics[width=.46\textwidth]{classification_classification_spiral3_confusion.png}
+\caption{Frontière de décision et matrice de confusion de Spiral.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=.75\textwidth]{classification_mnist_exemples.png}
+\caption{Exemples MNIST bien et mal classés.}
+\end{figure}
+
+\section{Exercice 3 : clustering}
+Pour éviter un grand tableau en mémoire, les distances sont calculées avec :
+\[
+D_{ik}=\lVert x_i\rVert^2+\lVert c_k\rVert^2-2x_i^Tc_k.
+\]
+Les points sont associés de façon douce aux centroïdes pendant l'apprentissage.
+À la fin, chaque point reçoit le centroïde le plus proche. Les vraies classes ne
+sont utilisées qu'après l'apprentissage pour calculer ARI et NMI. J'ai aussi
+programmé Lloyd comme méthode de comparaison.
+
+\begin{table}[H]\centering
+\caption{Meilleurs résultats de clustering.}
+\begin{tabular}{llrrr}\toprule
+Jeu & Méthode & Inertie & ARI & NMI\\\midrule
+Blobs & Adam & 0.290 & 0.975 & 0.960\\
+Wine & Momentum & 7.181 & 0.897 & 0.876\\
+MNIST (essai) & Lloyd & 38.601 & 0.389 & 0.496\\
+Fashion (essai) & Lloyd & 31.831 & 0.326 & 0.493\\\bottomrule
+\end{tabular}
+\end{table}
+
+Blobs est le jeu le plus facile car ses trois groupes sont bien séparés. Wine
+est plus sensible à l'initialisation. Sur les images, Lloyd est meilleur dans
+ce petit essai. Une petite inertie ne garantit pas forcément une bonne valeur
+d'ARI, car les deux mesures ne représentent pas exactement la même chose.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.46\textwidth]{clustering_blobs_projection.png}
+\includegraphics[width=.46\textwidth]{clustering_wine_projection.png}
+\caption{Clustering de Blobs et projection PCA de Wine.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=.46\textwidth]{clustering_mnist_centroides.png}
+\includegraphics[width=.46\textwidth]{clustering_fashion_mnist_centroides.png}
+\caption{Centroïdes obtenus sur les deux jeux d'images.}
+\end{figure}
+
+\section{Conclusion}
+Ce TP m'a permis de comprendre que le choix du modèle est très important. Par
+exemple, changer OLS par RBF améliore beaucoup le jeu Nonlinear. J'ai aussi vu
+que le nombre d'époques ne suffit pas pour comparer les méthodes : une époque
+de GD contient une seule mise à jour, alors que SGD contient plusieurs
+mini-lots.
+
+Les méthodes adaptatives donnent souvent de bons résultats rapidement, mais
+elles dépendent du pas choisi. Le clustering dépend aussi de l'initialisation.
+La principale limite de mes résultats est le budget court utilisé pour MNIST et
+Fashion-MNIST. Le code contient un mode \texttt{full} pour lancer l'expérience
+avec les partitions complètes et trois graines.
+
+\section*{Commande d'exécution}
+\begin{verbatim}
+python3 run_all.py --profile quick
+python3 run_all.py --profile full
+\end{verbatim}
+
+\noindent Dépôt du code :
+\url{https://github.com/DevOam/optimisation-numerique-numpy}
+
+\end{document}
